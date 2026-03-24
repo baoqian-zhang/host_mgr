@@ -1,22 +1,21 @@
-"""
-URL configuration for host_mgr project.
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/4.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
-from django.contrib import admin
-from django.urls import path
+from api_record.views import ApiCostViewSet
+from city.views import CityViewSet
+from host.views import HostStatisticViewSet
+from host.views import HostPasswordViewSet
+from host.views import HostViewSet
+from idc.views import IDCViewSet
+
+router = DefaultRouter()
+router.register("cities", CityViewSet, basename="city")
+router.register("idcs", IDCViewSet, basename="idc")
+router.register("hosts/passwords", HostPasswordViewSet, basename="host-password")
+router.register("hosts/statistics", HostStatisticViewSet, basename="host-statistic")
+router.register("hosts", HostViewSet, basename="host")
+router.register("api-costs", ApiCostViewSet, basename="api-cost")
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path("api/v1/", include(router.urls)),
 ]
