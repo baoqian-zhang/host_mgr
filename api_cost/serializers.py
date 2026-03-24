@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from api_record.models import ApiCost
+from api_cost.models import ApiCost
 
 
 class ApiCostSerializer(serializers.ModelSerializer):

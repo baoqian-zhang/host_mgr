@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 
-from api_record.models import ApiCost
-from api_record.serializers import ApiCostSerializer
+from api_cost.models import ApiCost
+from api_cost.serializers import ApiCostSerializer
 
 
 class ApiCostViewSet(viewsets.ModelViewSet):

@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from api_record.views import ApiCostViewSet
+from api_cost.views import ApiCostViewSet
 from city.views import CityViewSet
 from host.views import HostStatisticViewSet
 from host.views import HostPasswordViewSet

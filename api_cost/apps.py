@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class ApiRecordConfig(AppConfig):
+class ApiCostConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'api_record'
+    name = 'api_cost'
