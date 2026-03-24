@@ -1,11 +1,10 @@
 from django.db import models
 
-from host_mgr.base_models import TimeStampedModel
+from host_mgr.base_models import BaseModel
 
 
-class City(TimeStampedModel):
+class City(BaseModel):
     name = models.CharField(max_length=64, unique=True, verbose_name="城市名称")
-    extra = models.JSONField(default=dict, blank=True, verbose_name="扩展字段")
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
 
     class Meta:

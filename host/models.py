@@ -2,10 +2,10 @@ from django.db import models
 
 from city.models import City
 from idc.models import IDC
-from host_mgr.base_models import TimeStampedModel
+from host_mgr.base_models import BaseModel
 
 
-class Host(TimeStampedModel):
+class Host(BaseModel):
     hostname = models.CharField(max_length=128, unique=True, verbose_name="主机名")
     ip = models.GenericIPAddressField(unique=True, verbose_name="IP地址")
     ssh_port = models.PositiveIntegerField(default=22, verbose_name="SSH端口")
@@ -16,7 +16,6 @@ class Host(TimeStampedModel):
         verbose_name="所属机房",
         db_constraint=False,
     )
-    extra = models.JSONField(default=dict, blank=True, verbose_name="扩展字段")
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
 
     class Meta:
@@ -29,7 +28,7 @@ class Host(TimeStampedModel):
         return f"{self.hostname}({self.ip})"
 
 
-class HostPassword(TimeStampedModel):
+class HostPassword(BaseModel):
     host = models.ForeignKey(
         Host,
         on_delete=models.CASCADE,
@@ -42,7 +41,6 @@ class HostPassword(TimeStampedModel):
     valid_from = models.DateTimeField(auto_now_add=True, verbose_name="生效时间")
     valid_to = models.DateTimeField(null=True, blank=True, verbose_name="失效时间")
     is_current = models.BooleanField(default=True, verbose_name="是否当前密码")
-    extra = models.JSONField(default=dict, blank=True, verbose_name="扩展字段")
 
     class Meta:
         db_table = "host_password"
@@ -58,7 +56,7 @@ class HostPassword(TimeStampedModel):
         return f"{self.host.hostname}-{'current' if self.is_current else 'history'}"
 
 
-class HostStatistic(TimeStampedModel):
+class HostStatistic(BaseModel):
     stat_date = models.DateField(verbose_name="统计日期")
     city = models.ForeignKey(
         City,
@@ -75,7 +73,6 @@ class HostStatistic(TimeStampedModel):
         db_constraint=False,
     )
     host_count = models.PositiveIntegerField(default=0, verbose_name="主机数量")
-    extra = models.JSONField(default=dict, blank=True, verbose_name="扩展字段")
 
     class Meta:
         db_table = "host_statistic"

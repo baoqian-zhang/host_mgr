@@ -1,10 +1,10 @@
 from django.db import models
 
 from city.models import City
-from host_mgr.base_models import TimeStampedModel
+from host_mgr.base_models import BaseModel
 
 
-class IDC(TimeStampedModel):
+class IDC(BaseModel):
     name = models.CharField(max_length=64, unique=True, verbose_name="机房名称")
     code = models.CharField(max_length=32, unique=True, verbose_name="机房编码")
     city = models.ForeignKey(
@@ -14,7 +14,6 @@ class IDC(TimeStampedModel):
         verbose_name="所属城市",
         db_constraint=False,
     )
-    extra = models.JSONField(default=dict, blank=True, verbose_name="扩展字段")
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
 
     class Meta:

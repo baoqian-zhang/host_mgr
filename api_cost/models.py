@@ -1,16 +1,15 @@
 from django.db import models
 
-from host_mgr.base_models import TimeStampedModel
+from host_mgr.base_models import BaseModel
 
 
-class ApiCost(TimeStampedModel):
+class ApiCost(BaseModel):
     path = models.CharField(max_length=255, verbose_name="请求路径")
     method = models.CharField(max_length=16, verbose_name="请求方法")
     status_code = models.PositiveIntegerField(verbose_name="响应状态码")
     duration_ms = models.PositiveIntegerField(verbose_name="耗时(毫秒)")
     request_at = models.DateTimeField(auto_now_add=True, verbose_name="请求时间")
     client_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name="客户端IP")
-    extra = models.JSONField(default=dict, blank=True, verbose_name="扩展字段")
 
     class Meta:
         db_table = "api_cost"
