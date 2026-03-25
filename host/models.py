@@ -38,7 +38,6 @@ class HostPassword(BaseModel):
         db_constraint=False,
     )
     encrypted_password = models.TextField(verbose_name="加密后的root密码")
-    changed_at = models.DateTimeField(auto_now_add=True, verbose_name="变更时间")
     valid_from = models.DateTimeField(auto_now_add=True, verbose_name="生效时间")
     valid_to = models.DateTimeField(null=True, blank=True, verbose_name="失效时间")
     is_current = models.BooleanField(default=True, verbose_name="是否当前密码")
@@ -47,10 +46,10 @@ class HostPassword(BaseModel):
         db_table = "host_password"
         verbose_name = "主机密码"
         verbose_name_plural = "主机密码"
-        ordering = ["-changed_at"]
+        ordering = ["-valid_from"]
         indexes = [
             models.Index(fields=["host", "is_current"]),
-            models.Index(fields=["changed_at"]),
+            models.Index(fields=["valid_from"]),
         ]
 
     def __str__(self):

@@ -38,12 +38,21 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_ENABLE_UTC = False
+ROTATE_HOST_ROOT_PASSWORDS_TIME = 60 * 60 * 8
 CELERY_BEAT_SCHEDULE = {
     'compute-daily-host-statistics': {
         'task': 'host_mgr.tasks.compute_daily_host_statistics',
         'schedule': crontab(minute='0', hour='0'),
     },
+    'rotate-host-root-passwords': {
+        'task': 'host_mgr.tasks.rotate_host_root_passwords',
+        'schedule': 60 * 60 * 8,
+    },
 }
+HOST_PASSWORD_ENCRYPTOR = os.getenv(
+    "HOST_PASSWORD_ENCRYPTOR", "host_mgr.crypto.adapters.FernetEncryptor"
+)
+HOST_PASSWORD_ENCRYPTION_KEY = os.getenv("HOST_PASSWORD_ENCRYPTION_KEY")
 
 INSTALLED_APPS = [
     'django.contrib.admin',
