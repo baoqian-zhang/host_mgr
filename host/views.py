@@ -23,5 +23,7 @@ class HostPasswordViewSet(viewsets.ModelViewSet):
 
 
 class HostStatisticViewSet(viewsets.ModelViewSet):
-    queryset = HostStatistic.objects.select_related("city", "idc").all().order_by("-stat_date", "id")
+    queryset = (
+        HostStatistic.objects.select_related("content_type").all().order_by("-stat_date", "id")
+    )
     serializer_class = HostStatisticSerializer

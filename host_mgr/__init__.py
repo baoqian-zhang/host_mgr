@@ -1,6 +1,6 @@
 import pymysql
 
-from host_mgr.celery import celery_app
+from host_mgr.tasks import app
 
 pymysql.install_as_MySQLdb()
-__all__ = ('celery_app',)
+__all__ = ('app',)

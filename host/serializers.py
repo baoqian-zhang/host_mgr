@@ -18,6 +18,16 @@ class HostPasswordSerializer(serializers.ModelSerializer):
 
 
 class HostStatisticSerializer(serializers.ModelSerializer):
+
+    resource_name = serializers.SerializerMethodField()
+    statistic_model = serializers.CharField(source="content_type.model", read_only=True)
+
     class Meta:
         model = HostStatistic
         fields = "__all__"
+        read_only_fields = ("id", "created_at", "updated_at")
+
+    def get_resource_name(self, obj):
+        if obj.content_object is not None:
+            return str(obj.content_object)
+        return None

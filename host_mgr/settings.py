@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -37,6 +38,12 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_ENABLE_UTC = False
+CELERY_BEAT_SCHEDULE = {
+    'compute-daily-host-statistics': {
+        'task': 'host_mgr.tasks.compute_daily_host_statistics',
+        'schedule': crontab(minute='0', hour='0'),
+    },
+}
 
 INSTALLED_APPS = [
     'django.contrib.admin',

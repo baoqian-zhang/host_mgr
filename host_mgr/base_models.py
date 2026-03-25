@@ -20,7 +20,7 @@ class BaseModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     extra = NullableJSONStringField(
-        default=dict, blank=True, null=True, verbose_name="扩展字段"
+        default=None, blank=True, null=True, verbose_name="扩展字段"
     )
 
     def get_extra_value(self, key, default=None):

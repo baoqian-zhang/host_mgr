@@ -1,6 +1,7 @@
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
-from city.models import City
 from idc.models import IDC
 from host_mgr.base_models import BaseModel
 
@@ -57,32 +58,35 @@ class HostPassword(BaseModel):
 
 
 class HostStatistic(BaseModel):
-    stat_date = models.DateField(verbose_name="统计日期")
-    city = models.ForeignKey(
-        City,
-        on_delete=models.PROTECT,
-        related_name="host_statistics",
-        verbose_name="城市",
+    stat_date = models.DateTimeField(auto_now=True, verbose_name="统计时间")
+    content_type = models.ForeignKey(
+        ContentType,
         db_constraint=False,
+        on_delete=models.CASCADE,
+        related_name="+",
+        verbose_name="统计资源类型",
+        help_text="城市或机房",
     )
-    idc = models.ForeignKey(
-        IDC,
-        on_delete=models.PROTECT,
-        related_name="host_statistics",
-        verbose_name="机房",
-        db_constraint=False,
-    )
+    object_id = models.CharField(max_length=32, verbose_name="统计对象ID")
+    content_object = GenericForeignKey("content_type", "object_id")
     host_count = models.PositiveIntegerField(default=0, verbose_name="主机数量")
 
     class Meta:
         db_table = "host_statistic"
         verbose_name = "主机统计"
         verbose_name_plural = "主机统计"
-        ordering = ["-stat_date", "city_id", "idc_id"]
-        unique_together = ("stat_date", "city", "idc")
+        ordering = ["-stat_date", "content_type_id", "object_id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["stat_date", "content_type", "object_id"],
+                name="uniq_host_statistic_date_scope",
+            ),
+        ]
         indexes = [
-            models.Index(fields=["stat_date", "city", "idc"]),
+            models.Index(fields=["stat_date", "content_type", "object_id"]),
         ]
 
     def __str__(self):
-        return f"{self.stat_date}-{self.city.name}-{self.idc.name}:{self.host_count}"
+        obj = self.content_object
+        label = str(obj) if obj is not None else self.object_id
+        return f"{self.stat_date}-{label}:{self.host_count}"

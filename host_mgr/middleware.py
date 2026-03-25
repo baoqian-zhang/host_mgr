@@ -5,7 +5,7 @@ import time
 from django.utils import timezone
 from django.utils.deprecation import MiddlewareMixin
 
-from host_mgr.celery import record_api_cost
+from host_mgr.tasks import record_api_cost
 from host_mgr.settings import REST_API_PRE_URL
 
 logger = logging.getLogger(__name__)
