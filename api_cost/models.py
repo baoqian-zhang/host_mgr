@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone as django_timezone
 
 from host_mgr.base_models import BaseModel
 
@@ -8,7 +9,9 @@ class ApiCost(BaseModel):
     method = models.CharField(max_length=16, verbose_name="请求方法")
     status_code = models.PositiveIntegerField(verbose_name="响应状态码")
     duration_ms = models.PositiveIntegerField(verbose_name="耗时(毫秒)")
-    request_at = models.DateTimeField(auto_now_add=True, verbose_name="请求时间")
+    request_at = models.DateTimeField(
+        default=django_timezone.now, verbose_name="请求时间"
+    )
     client_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name="客户端IP")
 
     class Meta:

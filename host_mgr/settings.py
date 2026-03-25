@@ -15,6 +15,7 @@ TIME_ZONE = 'Asia/Shanghai'
 USE_I18N = True
 USE_TZ = False
 STATIC_URL = 'static/'
+REST_API_PRE_URL = 'api/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
@@ -53,6 +54,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'host_mgr.middleware.ApiCostMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',

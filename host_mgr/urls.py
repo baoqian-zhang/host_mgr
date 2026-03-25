@@ -7,6 +7,7 @@ from host.views import HostStatisticViewSet
 from host.views import HostPasswordViewSet
 from host.views import HostViewSet
 from idc.views import IDCViewSet
+from host_mgr.settings import REST_API_PRE_URL
 
 router = DefaultRouter()
 router.register("cities", CityViewSet, basename="city")
@@ -17,5 +18,5 @@ router.register("hosts", HostViewSet, basename="host")
 router.register("api-costs", ApiCostViewSet, basename="api-cost")
 
 urlpatterns = [
-    path("api/v1/", include(router.urls)),
+    path(f"{REST_API_PRE_URL}v1/", include(router.urls)),
 ]
