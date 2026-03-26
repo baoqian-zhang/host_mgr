@@ -55,7 +55,6 @@ HOST_PASSWORD_ENCRYPTOR = os.getenv(
 HOST_PASSWORD_ENCRYPTION_KEY = os.getenv("HOST_PASSWORD_ENCRYPTION_KEY")
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
