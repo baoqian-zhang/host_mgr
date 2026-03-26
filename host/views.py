@@ -14,6 +14,7 @@ from host.serializers import (
     HostSerializer,
     HostStatisticSerializer,
 )
+from host.throttles import PingHostThrottle, PingIpThrottle
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,12 @@ logger = logging.getLogger(__name__)
 class HostViewSet(viewsets.ModelViewSet):
     queryset = Host.objects.select_related("idc").all().order_by("id")
     serializer_class = HostSerializer
+
+    def get_throttles(self):
+        # 仅对 ping 入队（POST）限流；GET 轮询不限流
+        if self.action == "ping" and self.request.method == "POST":
+            return [PingIpThrottle(), PingHostThrottle()]
+        return super().get_throttles()
 
     @action(detail=True, methods=["post", "get"], url_path="ping", url_name="ping")
     def ping(self, request, pk=None):

@@ -174,6 +174,11 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ],
+    # ping 入队限流（由 host.throttles 中 scope 引用）
+    'DEFAULT_THROTTLE_RATES': {
+        'ping_ip': '10/minute',
+        'ping_host': '10/minute',
+    },
 }
 
 CACHES = {
