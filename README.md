@@ -351,7 +351,8 @@ python -m pytest tests
 
 #### 提交ping检测任务
 ![img_6.png](docs/img_6.png)
-
+#### ping任务提交限流
+![img_10.png](docs/img_10.png)
 #### 查看ping任务执行结果
 ![img_5.png](docs/img_5.png)
 
@@ -375,8 +376,6 @@ python -m pytest tests
 ---
 
 ## 后续规划
-
-以下能力在技术方案上已明确，当前版本**尚未排期实现**，便于与迭代节奏对齐：
 
 - **配置外置**：已将敏感连接放在 `.env`；计划将 `SECRET_KEY`、`DEBUG`、`ALLOWED_HOSTS` 等同样收口到环境变量，便于多环境配置与密钥轮换。  
 - **观测与运维**：计划接入统一健康检查（MySQL / Redis / Celery）；对密码轮换、日统计等任务增加指标埋点与失败告警通道。  
