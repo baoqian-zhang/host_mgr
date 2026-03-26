@@ -60,11 +60,11 @@ def _calc_city_host_count():
         )
 
         city_count_map = {
-            str(row["city_id"]): row["host_count"]
+            str(row["idc__city_id"]): row["host_count"]
             for row in Host.objects.filter(is_active=True)
             .values("idc__city_id")
             .annotate(host_count=Count("id"))
-            if row["city_id"] is not None
+            if row["idc__city_id"] is not None
         }
     except Exception:
         logger.exception('query city failed')

@@ -55,15 +55,16 @@ requirements.txt
 
 ## 系统架构
 
-组件之间的关系如下（逻辑视图，部署时可合并或拆分进程）。
+组件之间的关系如下（逻辑视图，部署时可合并或拆分进程）。**Django 进程**内通过 **Celery 应用**（`send_task` / `.delay`）向 Broker 提交异步任务；**Celery Worker** 进程独立运行，任务代码中仍使用 **Django ORM（models）** 访问 MySQL，与 Web 请求共用同一套模型定义。
 
 ```mermaid
 flowchart TB
   subgraph clients [Clients]
     HTTP[HTTP_Client]
   end
-  subgraph app [Application]
-    Django[Django_REST]
+  subgraph django_proc [Django 进程]
+    Django[Django REST]
+    CeleryApp[Celery 应用\nsend_task delay]
   end
   subgraph data [Data_Stores]
     MySQL[(MySQL)]
@@ -71,22 +72,25 @@ flowchart TB
   subgraph redis_layer [Redis]
     Redis[(Redis)]
   end
-  subgraph workers [Celery]
-    Worker[Celery_Worker]
-    Beat[Celery_Beat]
+  subgraph workers [Celery 进程]
+    Worker[Celery Worker]
+    Beat[Celery Beat]
   end
   HTTP --> Django
-  Django --> MySQL
-  Django --> Redis
-  Worker --> Redis
-  Worker --> MySQL
-  Beat --> Redis
+  Django -->|ORM| MySQL
+  Django -->|缓存限流信息等| Redis
+  Django --> CeleryApp
+  CeleryApp -->|提交任务消息| Redis
+  Beat -->|周期任务入队| Redis
+  Redis -->|Worker 拉取| Worker
+  Worker -->|Django ORM models| MySQL
 ```
 
-- **Django**：同步 HTTP、ORM、缓存读写。  
-- **Redis**：会话/缓存、Celery 消息队列与结果后端。  
-- **Celery Worker**：执行 ping、`record_api_cost`、每日统计、root 密码轮换等任务。  
-- **Celery Beat**：按 `settings.CELERY_BEAT_SCHEDULE` 投递周期任务。
+- **Django**：同步 HTTP、ORM、缓存/会话；业务代码通过 **同一 Celery 应用实例**将任务提交到队列（与 Worker 侧 `tasks` 模块对应）。  
+- **Celery 应用**：运行在 Django 上下文中发消息，不替代 Worker 执行。  
+- **Redis**：缓存/会话、Celery Broker 与 Result Backend。  
+- **Celery Worker**：消费队列中的任务；任务函数内使用 **Django models** 读写 MySQL（需在进程中加载 `DJANGO_SETTINGS_MODULE`）。  
+- **Celery Beat**：按 `settings.CELERY_BEAT_SCHEDULE` 向 Broker 投递周期任务。
 
 ---
 
@@ -178,13 +182,13 @@ python manage.py runserver
 ### 启动 Celery Worker
 
 ```bash
-celery -A host_mgr.tasks worker -l info
+celery -A host_mgr worker -l info
 ```
 
 ### 启动 Celery Beat（定时任务）
 
 ```bash
-celery -A host_mgr.tasks beat -l info
+celery -A host_mgr beat -l info
 ```
 
 生产环境可使用 **Gunicorn** 等 WSGI 服务器托管 Django，Worker/Beat 可用进程管理器或 systemd 守护。
@@ -210,7 +214,7 @@ celery -A host_mgr.tasks beat -l info
 
 ---
 
-## 流程与交互（Mermaid）
+## 流程与交互
 
 ### Ping 探测时序（POST 入队 + GET 轮询）
 
@@ -293,7 +297,7 @@ flowchart LR
 
 说明：**Celery Beat** 按调度将任务消息写入 **Broker**；**Worker** 从 Broker **拉取**任务执行。下方分别展开两个周期任务的**内部逻辑**（与 [`host_mgr/tasks.py`](host_mgr/tasks.py) 实现一致）。
 
-**`compute_daily_host_statistics`**：在内存中按城市、按机房各做 **ORM 聚合 Count**（仅统计 `is_active` 主机），合并为 `HostStatistic` 实例列表后，使用 **`bulk_create(..., batch_size=500, ignore_conflicts=True)`** 批量落库，避免逐条 `INSERT`。
+**`compute_daily_host_statistics`**：在内存中按城市、按机房各做 **ORM 聚合 Count**（仅统计 `is_active` 主机），并通过 **`django.contrib.contenttypes.models.ContentType`** 将「城市 / 机房」统一映射到 `HostStatistic(content_type, object_id)` 同一张统计表；随后使用 **`bulk_create(..., batch_size=500, ignore_conflicts=True)`** 批量落库，避免逐条 `INSERT`。
 
 **`rotate_host_root_passwords`**：先筛出「当前密码已生效满 8 小时」的主机（`HostPassword.is_current=True` 且 `valid_from ≤ now−8h`），并与 **`Host.is_active=True`** 求交；再经 **asyncio 协程**（带信号量限流）对每台主机执行 ping → 改密 → **加密**；仅成功的主机进入 **`transaction.atomic`**：**批量**将旧 `is_current` 行置为失效并写 `valid_to`，再 **`bulk_create`** 新密码行；失败主机仅打日志，不参与落库。
 
@@ -306,12 +310,14 @@ flowchart TB
     direction TB
     DC1["按城市维度 ORM 聚合\nCount 活跃主机数"]
     DC2["按机房维度 ORM 聚合\nCount 活跃主机数"]
-    DC3["合并为 HostStatistic 行列表"]
-    DC4["bulk_create 分批写入\nbatch_size 分批\nignore_conflicts\n非逐条 INSERT"]
+    DC3["ContentType 映射\nCity/IDC -> content_type + object_id"]
+    DC4["合并为 HostStatistic 行列表"]
+    DC5["bulk_create 分批写入\nbatch_size 分批\nignore_conflicts\n非逐条 INSERT"]
     DC1 --> DC3
     DC2 --> DC3
     DC3 --> DC4
-    DC4 --> DB1[(MySQL HostStatistic)]
+    DC4 --> DC5
+    DC5 --> DB1[(MySQL HostStatistic)]
   end
 
   subgraph rotate["rotate_host_root_passwords（每 8 小时）"]
@@ -339,46 +345,40 @@ python -m pytest tests
 
 ---
 
-## 演示与截图占位
-
-以下为预留位置，可将 Postman、Swagger、终端或自研控制台截图粘贴到对应小节（或改为 `![说明](./相对路径.png)`）。
-
-### 迁移与启动
-
-<!-- 截图：migrate / runserver / celery 启动成功 -->
-
----
-
-### CRUD 示例（城市 / 机房 / 主机）
-
-<!-- 截图：创建或列表接口请求与响应 -->
-
----
+## 演示
 
 ### Ping 异步探测（202 + task_id，GET 轮询结果）
 
-<!-- 截图：POST ping 与 GET 带 task_id 的响应 -->
+#### 提交ping检测任务
+![img_6.png](docs/img_6.png)
 
----
+#### 查看ping任务执行结果
+![img_5.png](docs/img_5.png)
 
 ### Celery 任务与定时任务
 
-<!-- 截图：worker 日志或任务监控面板 -->
-
----
+#### worker 异步执行ping检测任务 && 异步记录api耗时任务
+![img_7.png](docs/img_7.png)
+#### beat 定时触发密码更新任务 && 定时触发统计主机数量任务
+![img_8.png](docs/img_8.png)
 
 ### 主机统计查询
+![img_9.png](docs/img_9.png)
 
-<!-- 截图：hosts/statistics 或统计接口响应 -->
+
+### 其他模型操作演示
+![img.png](docs/img.png)
+![img_1.png](docs/img_1.png)
+![img_2.png](docs/img_2.png)
+![img_3.png](docs/img_3.png)
 
 ---
 
-## 后续规划（已知方案、尚未落地）
+## 后续规划
 
 以下能力在技术方案上已明确，当前版本**尚未排期实现**，便于与迭代节奏对齐：
 
 - **配置外置**：已将敏感连接放在 `.env`；计划将 `SECRET_KEY`、`DEBUG`、`ALLOWED_HOSTS` 等同样收口到环境变量，便于多环境配置与密钥轮换。  
 - **观测与运维**：计划接入统一健康检查（MySQL / Redis / Celery）；对密码轮换、日统计等任务增加指标埋点与失败告警通道。  
 - **协作与交付**：已通过 `.env.example` 降低上手成本；计划按需补充 OpenAPI 导出或简短集成文档，方便对接方自助联调。
-
 ---

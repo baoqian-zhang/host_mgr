@@ -57,14 +57,11 @@ class HostViewSet(viewsets.ModelViewSet):
             async_result = ping_host_task.delay(host.id)
         except Exception:
             logger.exception("enqueue ping task failed host_id=%s", host.id)
-            data["reachable"] = False
-            data["reason"] = "internal_error"
+            data["status"] = "internal_error"
             return Response(data, status=status.HTTP_200_OK)
 
         data["task_id"] = async_result.id
         data["status"] = "queued"
-        data["reachable"] = False
-        data["reason"] = "pending"
         return Response(data, status=status.HTTP_202_ACCEPTED)
 
     def _ping_get(self, request):
