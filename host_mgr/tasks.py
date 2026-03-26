@@ -4,6 +4,7 @@ import asyncio
 from datetime import timedelta
 
 from celery import Celery
+from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import Count
 from django.db import transaction
 from django.utils import timezone
@@ -273,3 +274,35 @@ def rotate_host_root_passwords():
         "rotate_host_root_passwords done succeeded=%s",
         len(succeeded),
     )
+
+
+@app.task
+def ping_host_task(host_id):
+    """ 探测指定主机是否 ping 可达 """
+    from host.models import Host
+
+    operator = HostOperatorAdapter()
+    host = Host.objects.select_related("idc").get(pk=host_id)
+    reason = "unreachable"
+    try:
+        reachable = operator.ping(host)
+        if reachable:
+            reason = None
+    except SoftTimeLimitExceeded:
+        reachable = False
+        reason = "timeout"
+    except Exception:
+        logger.exception("ping_host_task failed host_id=%s ip=%s", host_id, str(host.ip))
+        reachable = False
+        reason = "internal_error"
+
+    payload = {
+        "host_id": host.id,
+        "hostname": host.hostname,
+        "ip": str(host.ip),
+        "reachable": reachable,
+    }
+    if not reachable and reason:
+        payload["reason"] = reason
+
+    return payload
